@@ -26,6 +26,7 @@
 #ifndef quantlib_optimization_method_h
 #define quantlib_optimization_method_h
 
+#include <boost/timer.hpp>
 #include <ql/Utilities/null.hpp>
 #include <ql/Optimization/constraint.hpp>
 #include <ql/Optimization/costfunction.hpp>
@@ -34,6 +35,17 @@
 namespace QuantLib {
 
     class Problem;
+
+    inline std::string secondsToString(Real elapsed) {
+            Integer seconds = static_cast<Integer>(elapsed);
+            Integer hours = seconds/3600;
+            seconds -= hours * 3600;
+            Integer minutes = seconds/60;
+            seconds -= minutes * 60;
+            std::ostringstream out;
+            out << hours << ":" << minutes << ":" << seconds;
+            return out.str();
+    }
 
     //! Abstract class for constrained optimization method
     class OptimizationMethod {
@@ -44,6 +56,13 @@ namespace QuantLib {
         virtual EndCriteria::Type minimize(Problem& P,
                                            const EndCriteria& endCriteria //= EndCriteria()
                                            ) = 0;
+        Real elapsed() { return elapsed_; }
+      protected:
+        void startTimer() { timer_.restart(); }
+        void stopTimer() { elapsed_ = timer_.elapsed(); }
+
+        boost::timer timer_;
+        Real elapsed_;
     };
 
 }

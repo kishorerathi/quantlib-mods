@@ -1,7 +1,8 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2006 Giorgio Facchinetti
+ Copyright (C) 2007 Marco Bianchetti
+ Copyright (C) 2006 2007 Giorgio Facchinetti
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -67,6 +68,9 @@ namespace QuantLib {
 		Real weightedError(const Matrix& weights);
         Real weightedPriceError(const Matrix& weights);
         Real weightedForwardPriceError(const Matrix& weights);
+        Disposable<Array> weightedErrors(const Matrix& weights);
+        Disposable<Array> weightedPriceErrors(const Matrix& weights);
+        Disposable<Array> weightedForwardPriceErrors(const Matrix& weights);
  
       private:
 		void performCalculations() const;
@@ -74,6 +78,8 @@ namespace QuantLib {
 		void createForwardStartingCms();
 		void priceForwardStartingCms() const;
         void priceSpotFromForwardStartingCms() const;
+        Real weightedMean(const Matrix& var, const Matrix& weights);
+        Disposable<Array> weightedMeans(const Matrix& var, const Matrix& weights);
 
         std::vector<Period> expiries_;
         std::vector<Period> swapTenors_;
@@ -121,10 +127,8 @@ namespace QuantLib {
         std::vector< boost::shared_ptr<CmsCouponPricer> > pricers_;
         std::vector< boost::shared_ptr<SwapIndex> > swapIndices_;
         const std::vector<std::vector<Handle<Quote> > > bidAskSpreads_;
-
         std::vector< std::vector< boost::shared_ptr<Swap> > > swaps_;
         std::vector< std::vector< boost::shared_ptr<Swap> > > forwardSwaps_;
-
         Handle<YieldTermStructure> yieldTermStructure_;
      };
 
@@ -150,11 +154,12 @@ namespace QuantLib {
                           const boost::shared_ptr<OptimizationMethod>& method,
                           const Array& guess,
                           bool isMeanReversionFixed);
-        Real error(){return error_;};
-        EndCriteria::Type endCriteria(){ return endCriteria_; };
+        Real error(){return error_;}
+        Real elapsed() {return elapsed_;}
+        EndCriteria::Type endCriteria() { return endCriteria_; };
 
       private:
-        
+
         class ParametersConstraint : public Constraint {
               private:
                 class Impl : public Constraint::Impl {
@@ -187,18 +192,20 @@ namespace QuantLib {
                 calibrationType_(smileAndCms->calibrationType_){};
 
                 Real value(const Array& x) const;
-                Matrix sparseSabrParameters() const;
-                Matrix denseSabrParameters() const;
-                Matrix browseCmsMarket() const;
+                Disposable<Array> values(const Array& x) const;
+
           protected:
+            Real switchErrorFunctionOnCalibrationType() const;
+            Disposable<Array> switchErrorsFunctionOnCalibrationType() const;
+
             SmileAndCmsCalibrationBySabr* smileAndCms_;
             Handle<SwaptionVolatilityStructure> volCube_;
             boost::shared_ptr<CmsMarket> cmsMarket_;
             Matrix weights_;
             CalibrationType calibrationType_;
+          private:
+            virtual void updateVolatilityCubeAndCmsMarket(const Array& x) const;
         };
-
-
  
         class ParametersConstraintWithFixedMeanReversion : public Constraint {
               private:
@@ -228,14 +235,15 @@ namespace QuantLib {
                 :ObjectiveFunction(smileAndCms),
                 fixedMeanReversion_(fixedMeanReversion){};
 
-                Real value(const Array& x) const;
           private:
+            virtual void updateVolatilityCubeAndCmsMarket(const Array& x) const;
             Real fixedMeanReversion_;
         };
+
         
         Real error_; 
 		EndCriteria::Type endCriteria_;
-          
+        Real elapsed_;
     };
 
 }

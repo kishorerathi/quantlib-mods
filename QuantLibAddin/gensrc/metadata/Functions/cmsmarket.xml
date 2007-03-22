@@ -171,6 +171,21 @@
         <tensorRank>scalar</tensorRank>
       </ReturnValue>
     </Member>
+
+    <Member name='qlSimultaneousCalibrationElapsed' type='QuantLib::SmileAndCmsCalibrationBySabr'>
+      <description>Returns the elapsed time of the simultaneous calibration</description>
+      <libraryFunction>elapsed</libraryFunction>
+      <SupportedPlatforms>
+        <SupportedPlatform name='Excel' calcInWizard='true' />
+      </SupportedPlatforms>
+      <ParameterList>
+        <Parameters/>
+      </ParameterList>
+      <ReturnValue>
+        <type>double</type>
+        <tensorRank>scalar</tensorRank>
+      </ReturnValue>
+    </Member>
     
     <Member name='qlSimultaneousCalibrationSparseSabrParameters' type='QuantLibAddin::SmileAndCmsCalibrationBySabr'>
       <description>returns results of Sabr calibration</description>

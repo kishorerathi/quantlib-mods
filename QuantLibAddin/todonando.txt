@@ -90,12 +90,12 @@ Nando
 K
 - coveredWarrants.xls
 - prepare report for release in Production: 28 Feb 9:10
-- SA: test CmsPricer() observability
 - SA: applied to cms book
 - create new .xls with NPVs of 4 cms books
 - foglio di clerici (interpolazione)
 - remove action atmVolatility from Launcher
 Pending:
+- DONE SA: test CmsPricer() observability
 - DONE new calibrations QuantLibXL actions
 - DONE review of .xls used in Eods
 - DONE standardizzare il nome delle quotes dei param di calibrazione
@@ -148,15 +148,12 @@ TO BE DISCUSSED: Object Builder performance issue when the control panel is left
 
 
 Cristina
-- multiLegSwap.xls: finalise and move from Drafts to IRDerivatives
+- DONE multiLegSwap.xls: finalise and move from Drafts to IRDerivatives
 - testing that the manual procedure to set back/forward the evaluation date
   returns the same results of the automantic procedure
-- ottimizzare foglio di contribuzione delle vola su Mx:
-  QuantLibXL\Workbooks\MarketMetaData\QL_MX_swaptions_EUR.xls
-- move out from controlPanel.xls to a separate wkb all functions' checks
 - DONE reorder Excel workbooks input parameters order
 - DONE coupon refactoring (shared among Cristina and Giorgio)
-- WIP expose to QXL new IborLeg (following coupon refactoring in QL)
+- DONE expose to QXL new IborLeg (following coupon refactoring in QL)
 - DONE cap/floor rates output in cashflow analysis
 - DONE added exampleValue to assigned files
 - DONE adaption of pricers workbooks to new Ibor and CmsCoupon constructors
@@ -189,13 +186,14 @@ WIP ratchet Instrument C++ (shared among Marco, Giorgio)
 
 
 Chiara
-- insert new bond objects needed by the trader
-- create a new spreadsheet where bond's pricer should be set
+
 - With Nando add tests for asset swap in the test suite
 - with Nando review bond euivalent fo Reverse FRN
 - Digital Bond contructor
 - Multicallable bond constructor
 - Z-spread function
+DONE insert new bond objects needed by the trader
+DONE create a new spreadsheet where bond's pricer should be set
 DONE Add QuantLib currency to bond static data
 DONE with Nando review all the signatures of bond functions in excel
 DONE capped/floored coupon bond
@@ -210,15 +208,19 @@ WIP profiling session with Francois on BondMonitor_EUR.xls
 
 
 Marco
-- verifica ottimizzatori
-- DONE verifica documento di McKinsey
-- DONE BGM payoffs review
-- DONE BGM book set up
-- DONE sticky/ratchet and double option instruments in C++ (shared among Marco, Giorgio)
-- DONE sticky/ratchet and double option instruments export in Addin
-- DONE sticky/ratchet and double option pricing
-- WIP valuation of plain vanilla leg of BGM book (shared among Marco, Giorgio and Cristina) (WAIT FOR DIGITAL OPTIONS)
-- WIP digital option in C++ (shared among Marco, Giorgio and Cristina)
+- WIP: verifica ottimizzatori:
+	- DONE: Levenberg-Marquardt
+	- TBD: conjugate gradient
+	- WIP: reingineering of EndCriteria
+	- TBD: export everything to excel and build the spreadsheet to test optimizers
+- DONE: verifica documentazione di McKinsey
+- DONE: BGM payoffs review
+- DONE: BGM book set up
+- DONE: sticky/ratchet and double option instruments in C++ (shared among Marco, Giorgio)
+- DONE: sticky/ratchet and double option instruments export in Addin
+- DONE: sticky/ratchet and double option pricing
+- WIP: valuation of plain vanilla leg of BGM book (shared among Marco, Giorgio and Cristina) (WAIT FOR DIGITAL OPTIONS)
+- WIP: digital option in C++ (shared among Marco, Giorgio and Cristina)
 - ??? foglio swaption per De Nuccio / Murex
 - (To BE REVIEWED) update Mx YC action
 - (To BE REVIEWED) improve interpolations

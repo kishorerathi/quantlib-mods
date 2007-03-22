@@ -1,7 +1,8 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 
 /*
- Copyright (C) 2006 Giorgio Facchinetti
+ Copyright (C) 2007 Marco Bianchetti
+ Copyright (C) 2006 2007 Giorgio Facchinetti
 
  This file is part of QuantLib, a free-software/open-source library
  for financial quantitative analysts and developers - http://quantlib.org/
@@ -77,9 +78,7 @@ namespace QuantLib {
         marketMidForwardCmsLegValues_ = Matrix(nExercise_, nSwapTenors_, 0.);
         modelForwardCmsLegValues_ = Matrix(nExercise_, nSwapTenors_, 0.);
         forwardPriceErrors_ = Matrix(nExercise_, nSwapTenors_, 0.);
-
         meanReversions_ = Matrix(nExercise_, nSwapTenors_, 0.);
-
         for (Size i=0; i<nExercise_; i++) {
             std::vector< boost::shared_ptr<Swap> > swapTmp;
             for (Size j=0; j<nSwapTenors_ ; j++) {
@@ -90,11 +89,8 @@ namespace QuantLib {
             }
             swaps_.push_back(swapTmp);
         }
-
         registerWithMarketData();
-
         createForwardStartingCms();
-
         performCalculations();
      }
 
@@ -119,7 +115,6 @@ namespace QuantLib {
         Size cmsIndex = 0;
         Size floatIndex = 1;
 
-        // add by fdv
         for (Size i = 0; i< nExercise_;++i)
             for (Size j = 0; j< nSwapTenors_;++j){
 
@@ -162,7 +157,6 @@ namespace QuantLib {
                     marketMidForwardCmsLegValues_[i][j] =
                         -((swaps_[i][j]->legNPV(1) + swaps_[i][j]->legBPS(1)*mids_[i][j]*10000)-
                         (swaps_[i-1][j]->legNPV(1) + swaps_[i-1][j]->legBPS(1)*mids_[i-1][j]*10000));
-
                 }
             }
         priceForwardStartingCms();
@@ -238,45 +232,58 @@ namespace QuantLib {
         }
     }
 
+
     Real CmsMarket::weightedError(const Matrix& weights){
         priceSpotFromForwardStartingCms();
-        Real error=0.;
-        Size count=0;
-        for(Size i=0;i<nExercise_;i++){
-            for(Size j=0;j<nSwapTenors_;j++){
-                count++;
-                error+=10000.*weights[i][j]*spreadErrors_[i][j]*spreadErrors_[i][j];
-            }
-        }
-        error=std::sqrt(error/count);
-        return error;
+        return weightedMean(spreadErrors_,weights);
     }
 
     Real CmsMarket::weightedPriceError(const Matrix& weights){
         priceSpotFromForwardStartingCms();
-        Real error=0.;
-        Size count=0;
-        for(Size i=0;i<nExercise_;i++){
-            for(Size j=0;j<nSwapTenors_;j++){
-                count++;
-                error+=weights[i][j]*priceErrors_[i][j]*priceErrors_[i][j];
-            }
-        }
-        error=std::sqrt(error/count);
-        return error;
+        return weightedMean(priceErrors_,weights);
     }
 
     Real CmsMarket::weightedForwardPriceError(const Matrix& weights){
-        Real error=0.;
-        Size count=0;
+        return weightedMean(forwardPriceErrors_,weights);
+    }
+
+    // return an array of errors to be used for Levenberg-Marquardt optimization.
+
+    Disposable<Array> CmsMarket::weightedErrors(const Matrix& weights){
+        priceSpotFromForwardStartingCms();
+        return weightedMeans(spreadErrors_,weights);
+    }
+
+    Disposable<Array> CmsMarket::weightedPriceErrors(const Matrix& weights){
+        priceSpotFromForwardStartingCms();
+        return weightedMeans(priceErrors_,weights);
+    }
+
+    Disposable<Array> CmsMarket::weightedForwardPriceErrors(
+                                                        const Matrix& weights){
+        return weightedMeans(forwardPriceErrors_,weights);
+    }
+
+    Real CmsMarket::weightedMean(const Matrix& var, const Matrix& weights){
+        Real mean=0.;
         for(Size i=0;i<nExercise_;i++){
             for(Size j=0;j<nSwapTenors_;j++){
-                count++;
-                error+=weights[i][j]*forwardPriceErrors_[i][j]*forwardPriceErrors_[i][j];
+                mean += weights[i][j]*var[i][j]*var[i][j];
             }
         }
-        error=std::sqrt(error/count);
-        return error;
+        mean=std::sqrt(mean/(nExercise_*nSwapTenors_));
+        return mean;
+    }
+        
+    Disposable<Array> CmsMarket::weightedMeans(const Matrix& var, 
+                                                       const Matrix& weights){
+        Array  weightedVars(nExercise_*nSwapTenors_);
+        for(Size i=0; i<nExercise_; i++) {
+            for(Size j=0; j<nSwapTenors_; j++) {
+                weightedVars[i*nSwapTenors_+j] = std::sqrt(weights[i][j])*var[i][j];
+            }             
+        }        
+        return weightedVars;
     }
 
     Matrix CmsMarket::browse() const{
@@ -354,23 +361,25 @@ namespace QuantLib {
             ObjectiveFunctionWithFixedMeanReversion costFunction(this, fixedMeanReversion);
             Problem problem(costFunction, constraint,betasGuess);
             endCriteria_ = method->minimize(problem, *endCriteria);
-            error_ = problem.functionValue();
             result = problem.currentValue();
-            sparseSabrParameters_ = costFunction.sparseSabrParameters();
-            denseSabrParameters_ = costFunction.denseSabrParameters();
-            browseCmsMarket_ = costFunction.browseCmsMarket();
+            error_ = costFunction.value(result);
+            elapsed_ = method->elapsed();
         }
         else {
             ParametersConstraint constraint(guess.size()-1);
             ObjectiveFunction costFunction(this);
             Problem problem(costFunction, constraint,guess);
             endCriteria_ = method->minimize(problem, *endCriteria);
-            error_ = problem.functionValue();
             result = problem.currentValue();
-            sparseSabrParameters_ = costFunction.sparseSabrParameters();
-            denseSabrParameters_ = costFunction.denseSabrParameters();
-            browseCmsMarket_ = costFunction.browseCmsMarket();
+            error_ = costFunction.value(result);
+            elapsed_ = method->elapsed();
         }
+        const boost::shared_ptr<SwaptionVolCube1> volCubeBySabr =
+            boost::dynamic_pointer_cast<SwaptionVolCube1>(volCube_.currentLink());
+        sparseSabrParameters_ = volCubeBySabr->sparseSabrParameters();
+        denseSabrParameters_ = volCubeBySabr->denseSabrParameters();
+        browseCmsMarket_ = cmsMarket_->browse();
+
         return result;
     }
 
@@ -379,20 +388,32 @@ namespace QuantLib {
     //===========================================================================//
 
     Real SmileAndCmsCalibrationBySabr::ObjectiveFunction::value(const Array& x) const {
+        updateVolatilityCubeAndCmsMarket(x);
+        return switchErrorFunctionOnCalibrationType();
+    }
+
+    Disposable<Array> SmileAndCmsCalibrationBySabr::ObjectiveFunction::values(const Array& x) const {
+        updateVolatilityCubeAndCmsMarket(x);
+        return switchErrorsFunctionOnCalibrationType();
+    }
+        
+    void SmileAndCmsCalibrationBySabr::ObjectiveFunction::
+                    updateVolatilityCubeAndCmsMarket(const Array& x) const {
         const Array y = x;
         const std::vector<Period>& swapTenors = cmsMarket_->swapTenors();
         Size nSwapTenors = swapTenors.size();
         QL_REQUIRE(nSwapTenors+1 == x.size(),"bad calibration guess nSwapTenors+1 != x.size()");
-
         const boost::shared_ptr<SwaptionVolCube1> volCubeBySabr =
                boost::dynamic_pointer_cast<SwaptionVolCube1>(volCube_.currentLink());
-
         for (Size i=0; i<nSwapTenors; i++){
             Real beta = y[i];
             volCubeBySabr->recalibration(beta, swapTenors[i]);
         }
         Real meanReversion = y[nSwapTenors];
         cmsMarket_->reprice(volCube_, meanReversion);
+    }
+
+    Real SmileAndCmsCalibrationBySabr::ObjectiveFunction::switchErrorFunctionOnCalibrationType() const {
         switch (calibrationType_) {
             case OnSpread:
                 return cmsMarket_->weightedError(weights_);
@@ -405,55 +426,38 @@ namespace QuantLib {
         }
     }
 
-    Matrix 
-    SmileAndCmsCalibrationBySabr::ObjectiveFunction::sparseSabrParameters() const{
-        const boost::shared_ptr<SwaptionVolCube1> volCubeBySabr =
-            boost::dynamic_pointer_cast<SwaptionVolCube1>(volCube_.currentLink());
-        return volCubeBySabr->sparseSabrParameters();
-	}
-    
-    Matrix 
-    SmileAndCmsCalibrationBySabr::ObjectiveFunction::denseSabrParameters() const{
-        const boost::shared_ptr<SwaptionVolCube1> volCubeBySabr =
-            boost::dynamic_pointer_cast<SwaptionVolCube1>(volCube_.currentLink());
-        return volCubeBySabr->denseSabrParameters();
-	}
-
-    Matrix 
-    SmileAndCmsCalibrationBySabr::ObjectiveFunction::browseCmsMarket() const{
-        return cmsMarket_->browse();
-	}
+    Disposable<Array> SmileAndCmsCalibrationBySabr::ObjectiveFunction::
+                                    switchErrorsFunctionOnCalibrationType() const {
+        switch (calibrationType_) {
+            case OnSpread:
+                return cmsMarket_->weightedErrors(weights_);
+            case OnPrice:
+                return cmsMarket_->weightedPriceErrors(weights_);
+            case OnForwardCmsPrice:
+                return cmsMarket_->weightedForwardPriceErrors(weights_);
+            default:
+                QL_FAIL("unknown/illegal calibration type");
+        }
+    }
 
     //===========================================================================//
     //   SmileAndCmsCalibrationBySabr::ObjectiveFunctionWithFixedMeanReversion   //
     //===========================================================================//
 
-    Real SmileAndCmsCalibrationBySabr::ObjectiveFunctionWithFixedMeanReversion::value(
-                                                                    const Array& x) const {
+    void SmileAndCmsCalibrationBySabr::ObjectiveFunctionWithFixedMeanReversion::
+                                updateVolatilityCubeAndCmsMarket(const Array& x) const {
         const Array y = x;
         const std::vector<Period>& swapTenors = cmsMarket_->swapTenors();
         Size nSwapTenors = swapTenors.size();
         QL_REQUIRE(nSwapTenors == x.size(),"bad calibration guess nSwapTenors != x.size()");
-
         const boost::shared_ptr<SwaptionVolCube1> volCubeBySabr =
                boost::dynamic_pointer_cast<SwaptionVolCube1>(volCube_.currentLink());
-
         for (Size i=0; i<nSwapTenors; i++){
             Real beta = y[i];
             volCubeBySabr->recalibration(beta, swapTenors[i]);
         }
-
         cmsMarket_->reprice(volCube_, fixedMeanReversion_);
-        switch (calibrationType_) {
-            case OnSpread:
-                return cmsMarket_->weightedError(weights_);
-            case OnPrice:
-                return cmsMarket_->weightedPriceError(weights_);
-            case OnForwardCmsPrice:
-                return cmsMarket_->weightedForwardPriceError(weights_);
-            default:
-                QL_FAIL("unknown/illegal calibration type");
-        }
     }
+
 
 }
