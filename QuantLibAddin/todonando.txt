@@ -24,20 +24,22 @@ class Instrument {
 ---
 GENERAL
 - everybody please:
-  note handles behaviour
-  switch to dynamic xll
-  remove useless env variables (all but QUANTLIBXL_CONFIG_PATH which should
-    point at C:\Projects\QuantLibSVN\trunk\Launcher)
   be ready to debug DevCycle revisions
-  switch to boost 1.34 (bjam --toolset=msvc-8.0 install)
-  avoid (implicitly) using ActiveWorkbook and ActiveWorksheet in VBA code
-  remove trigger ohretrieveError() calls
+  switch to boost 1.34.1 (bjam --toolset=msvc-8.0 install)
   familiarize with ohObjectSave() ohObjectLoad()
   familiarize with ohPropertyNames and ohPropertyValue()
   stateful serialization
-  VBA option explicit (Tools | Option | Editor | Require Variable Declaration)
   check out and compile SA
+  pricing engines are (the only) mkt data observers
+  SVN config file
+  pricing engines refactoring
+  verbose log messages
 
+- CabotoXL.xla (Murex curve, vol export, cms calibrations, cms book)
+- serialize RelinkableHandles and Pricing Engines
+- more release manager
+- bund future equivalent
+- multicallable
 - RT stop
 - touch timestamp-buildnumber file
 - MultiPhaseLeg (no overlapping cf, payer only), MixedLeg (with payer/receiver)
@@ -110,7 +112,7 @@ GENERAL
 
 ---
 NANDO
-- restore qlVersion()
+- use Use svn:externals ? what about branches?
 - install VC8 Express edition (Nando, Giorgio, Cri, K)
 - more pricing engines global instantiation
 - bond refactoring using leg as constructor arguments
@@ -152,18 +154,23 @@ NANDO
 K
 
 - presa in carico del foglio di Clerici
+- mostra De Nuccio standard di mercato di vanilla swap/swap/cap&floor
 - check that CMS book NPV is ok when allowExtrapolation=False for YC and
-  volStructures (K and Giorgio)
+  volStructures (K and Giorgio):
+  -> YC=False ha impatto sulla costruzione del cubo 30x30,
+     lo swap che fissa tra 30Y e ha durata 30Y ha come last date una
+     date superiore alla max date della yc
+  -> cube=False: same results in trms of npv
 - install VC8 Express edition (Nando, Giorgio, Cri, K)
-- close all macro must stop screen refresh and should not activate wbk
+DONE close all macro must stop screen refresh and should not activate wbk
 - TRIMESTRALE
-- action for setEvaluationDate
-- evitare di dover chiudere dopo il refresh snapshot prima delle calibrazioni
-  (K & Cri)
+- action for setEvaluationDate -> stand-by for Eric
+ERIC:
+- repository per caboto.xll e shared docs
 - TimeSeries serialization
 - Design e gestione della USD currency per contribuzione swaption vols
-- run SA on EURYCMx2 replacing the quotes ids
-- time series
+- run SA on EURYCMx2 replacing the quotes ids -> emailed Eric with test-case
+- time series (stand-by)
     *Gestione smart per poter estendere le ts dinamicamente
 - Workbook_BeforeClose to remove triggers (verifica su pc diversi)
   Wkb_Open vs Auto_Open:
@@ -171,10 +178,9 @@ K
     *Via Code: fires only the event, not the Auto_Open. To force the Auto_Open
      use RunAutoMacros.
   su foglio ManualCapFeed
-- Rt Update
-  -> no evidence of stopping problems on our pcs
-  -> prepared wkb to test on traders' pc (next week)
+- Rt Update stop: testing
 - coveredWarrants.xls
+    * repricing vs Mx with new cap stripper
 - Sensitivity Analysis (K&Cristina):  				(7.5d/5w)
   - General
     run sa on rates, atm vols and vol spreads
@@ -246,7 +252,7 @@ K
 
 ---
 CRISTINA
-- create greeks workbook and add more sens analysis:
+- create greeks workbook and add more sens analysis (possibly using GUI):
   beta, mean rev,
   cms quotes,
   time value
@@ -257,15 +263,11 @@ CRISTINA
 - create in Workbooks/PricingEngines BlackSwaption and BlackCapFloor engines.
   Use them for in IRDerivatives pricing workbooks
 - install VC8 Express edition (Nando, Giorgio, Cri, K)
-- chiusure DRM 29/6 e creazione ambiente dedicato
-- test for relinkability (CMS npv + greeks)           (DONE for NPV)
 - test valid object creation with ALL quotes not initialized (waiting for
   François)
 - use OTM options instead of ITM options in all abcd wbks
 - do not use short term option in abcd of Swap Indexes; see if d are more equal
   across different Swap Indexes
-- evitare di dover chiudere dopo il refresh snapshot prima delle calibrazioni
-  (K & Cri)
 - deals serialization
 - cap/floor flow analysis
 - digital coupon pricing with analytic formula
@@ -274,7 +276,8 @@ CRISTINA
 - verify excessive number of input parameter in DigitalLeg
 - verify Murex daycount definition
 - fix number of relevant digits in all (forecasted) index fixings
-- daily trunk check and CMS calibration
+- daily monitoring of trunk environment:
+  MainChecks, BondMonitor, CMS calibration, CTSMM calibration
 - testsuite: check volatility when shifting evaluation date (1D/3D)
 - change class CappedFlooredIborCoupon in order to add the
   possibility of adding/subracting call and put   (1D/2D)
@@ -284,18 +287,14 @@ CRISTINA
 
 ---
 CHIARA
-- daily monitor of Production/Pre-Production/Testing environment
-  (MainChecks+BondMonitor)
-- create Workbooks/PricingEngines folder and create there a wbk for
-  instantiating CMS/Ibor Pricers. Use them for Bonds and IRDerivatives
-  pricing workbooks
-- Digital Bond contructor (5.0d|10dd|Wip)
-  - decompose each deal in different legs: one wbk per deal (wip)
+- daily monitoring of Production/Pre-Production/Testing environments:
+  MainChecks, BondMonitor, CMS calibration, CTSMM calibration
+- add new bonds in all the environments for traders' need (0.0D-0.5D)
+- Digital Bond contructor (8.0d|10dd|Wip)
+  - decompose each deal in different legs: one wbk per deal (Done)
+  - review workbook's design (0.5D|1D)
   - digitalcmsratebond constructor + digitalfloatingratebond constructor
     without cap and floor
-- debug cmsratebond constructor for cms bond paying once in arrears (e.g.
-  IT0003650998.pdf) (0d|1d)
-  -prospectus added in Drafts
 - cds options (with Giorgio) (1.5d-30dd|WIP)
   - analysis of the trader's workbook
   - verified correct installation of Launcher, access given to the trader to
@@ -304,9 +303,11 @@ CHIARA
   - arrange session with nando
 - markedata\BloombergFeed (Maurizio Pietrini)
   - 7/6 clarified once again mkt data feed for interestratequotesfeed.xls
-  - 7/9 received first workbook interestratequotesfedd.xls incompleted from
+  - 7/9 received first workbook interestratequotesfeed.xls incompleted from
     Maurizio
   - 7/10 replied with feedback on the first workbook
+  - 7/23 received 2nd version of interestratequotesfeed.xls still incompleted from Maurizio,
+    replied with feedback
 - zspread/yield inversion (lehman's paper values can optionally be reproduces
   in the testsuite)
 - zerospreadedtermstructure: daycounter bug
@@ -320,20 +321,19 @@ CHIARA
 
 ---
 FRANCOIS
-- handle Cristina's mail report
-- QL menu "wbk open" must reopen in the last folder
-- have cell menu "format as" to work on multiple selection
-- allow the user to choose traits and interpolator in the
+- handle Cristina's mail report (WIP)
+WIP allow the user to choose traits and interpolator in the
   HistoricalForwardRatesAnalysis class (and expose it to
   Excel as traits aware)
-D sabr near-atm discontinuity (Giorgio and François) (1D/1D)
+  -> waiting for Eric feedback
 - null strike -> atm strike (1W|WIP)
-- arrange sessions on Rapisarda approach(TBD)
-- XML/ serialization presentation
-- MM: different correlation structures (Rapisarda, Schoenmakers and
+B arrange sessions on Rapisarda approach(TBD)
+B XML/ serialization presentation
+TBR MM: different correlation structures (Rapisarda, Schoenmakers and
   Coffey)(5.5D/2D-5D) (To be reviewed)
-- notification chains pb (1D/3D)
+WIP notification chains pb (1D/3D)
   TermStructure lazyness in notification
+  -> to be discussed with Luigi
 - smile sections:
 	- use Levenberg optimizator
 	- move vol quotes from constructor(to be precised)
@@ -348,19 +348,20 @@ D sabr near-atm discontinuity (Giorgio and François) (1D/1D)
 
 ---
 GIORGIO (last update 6/6/2007)
-D report last meeting content to François
-D expose QL::CashFlows::irr, duration and convexity to XL as qlLegIrr,
-  qlLegDuration, and qlLegConvexity (with their enums, etc)
-WIP export FRARateHelper and BondRateHelper
-D sabr near-atm discontinuity (Giorgio and François) (1D/1D)
+
+- bond-swaption refactoring
+- cap/swaption pricer with constant/spreaded vol (BUG)
+- export FRARateHelper and BondRateHelper
 - install VC8 Express edition (Nando, Giorgio, Cri, K)
+- MakeXXX market conventions
 WIP clean up vega incoherencies
-D code MakeSwaption class
 WIP use Handle in SwaptionVolCubeChecks
 - CMS
+  macro for 5 single index calibration with 5 mean revs
+  macro for 5 single index calibration with 1 mean rev (the 10Y one)
   alternative calibrations with null rho
   check 2Y beta sensitivity
-- EvolutionDescription equality
+WIP EvolutionDescription equality
 - prepare smile section refactoring proposal
 - range accrual session
 - CDS options (with Chiara)
@@ -372,27 +373,16 @@ WIP use Handle in SwaptionVolCubeChecks
       CMS.xls
 
 ---
-MARCO (last update 27/6/2007)
-- Citrix showdown: (1d/1d/DONE)
-  - verifica licenze accesso: individuato referente, -> Katiuscia (DONE)
-  - verifica accesso a $+ (DONE)
-  - utenze BGM x tutti (DONE)
-  - autorizzazione accesso Francois a Iflazione (DONE)
-  - assistenza verifica accesso Quants (waiting Ametrano)
+MARCO (last update 30/7/2007)
+WIP pricing plain vanilla legs in BGM book (with Marco/Giorgio/Cristina)
+  (0.0/5d/)
 - check optimizers:
   - fix steepest descent (with Francois) (1d/2d/WIP)
   - add more tests (multidimensional) in test suite (to be planned)
   - add Broyden-Fletcher-Goldfarb-Shanno algorithm (to be planned)
   - check export to excel and testing wkb (to be planned)
-- historical correlation (shared with francois; TO BE REVIEWED)
-- pricing plain vanilla legs in BGM book (with Marco/Giorgio/Cristina)
-  (0.0/2d/WAITING FOR DIGITAL OPTIONS)
 - Risk, Wilmott papers (0.0/1d/WAITING for Ferdinando)
 - Inflation project:
-  - Attività UAT (3w/2w/DONE)
-  - Caboto/DOF platform release EOD (DONE)
-  - Caboto/DOF platform release intraday (DONE)
-  - Planning phase 2 (DONE)
   - implementation of binary, digital, range accrual payoffs (TEST)
   - implementation of Montecarlo pricing for TFR (TEST)
   - 3 factor model and Hybrids (WIP)
@@ -405,6 +395,7 @@ Eric
 - Trader wbk problem
 - object creation
 
+- remove trigger input parameter from ohretrieveError() signature
 - DevCycle branches/tags
 - SA version number
 - mkt data serialization
